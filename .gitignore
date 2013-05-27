@@ -2,3 +2,11 @@
 .bundle
 vendor/bundle
 .vagrant
+relationships.dot
+relationships.png
+expanded_relationships.dot
+expanded_relationships.png
+resources.dot
+resources.png
+cycles.dot
+cycles.png
