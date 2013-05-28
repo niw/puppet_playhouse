@@ -48,6 +48,13 @@ set :deploy_via, :copy
 # To use the current working directory, use `set :scm, :none`.
 # Default :scm is :git which checkouts local HEAD instead.
 set :scm, :none
+set :copy_exclude, %w[
+  .git
+  .gitignore
+  .bundle
+  .vagrant
+  vendor/bundle
+]
 
 set :deploy_to, "/tmp/#{application}"
 
