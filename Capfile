@@ -69,11 +69,11 @@ set :copy_exclude, %w[
   .vagrant
   vendor/bundle
 ]
-
 set :deploy_to, "/tmp/#{application}"
+set :shared_children, %w[
+]
 
 # Avoid Rails specific directories creation and normalization.
-set :shared_children, []
 set :normalize_asset_timestamps, false
 
 # Chain deploy tasks
