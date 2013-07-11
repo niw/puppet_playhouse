@@ -81,6 +81,13 @@ before "deploy:update", "deploy:setup"
 after "deploy", "deploy:cleanup"
 
 #
+# Use bundler
+#
+
+# Install puppet and dependencies while deploy.
+require "bundler/capistrano"
+
+#
 # Puppet Recipe
 #
 
@@ -105,7 +112,8 @@ namespace :puppet do
     manifest = ENV["PUPPET_MANIFEST"] || "site.pp"
     manifest_path = File.join(current_path, "manifests", manifest)
 
-    # NOTE Can we invoke puppet apply from puppet.gem instead of using the wrapper?
-    sudo "/usr/bin/puppet apply --modulepath=#{module_path} #{manifest_path}"
+    # Use puppet installed from bundler.
+    run "cd #{current_path} && " <<
+        "#{sudo} bundle exec puppet apply --modulepath=#{module_path} #{manifest_path}"
   end
 end
