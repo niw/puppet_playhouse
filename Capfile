@@ -1,19 +1,33 @@
+$LOAD_PATH.unshift File.expand_path("../lib", __FILE__)
+
 #
 # Use multistage extension.
 #
 
+# Need to set stage_dir before require ext/multistage.
 set :stage_dir, "stages"
-set :default_stage, "use_hosts_env"
 
-task :use_hosts_env do
+require "capistrano/ext/multistage"
+require "multistage_ext"
+
+# By default use HOSTS environment variable.
+add_stage :hosts_env, :default => true do
   unless ENV["HOSTS"]
     raise Capistrano::NoMatchingServersError,
           "Use HOSTS to give servers to apply, also use SSH_USER, SSH_PORT and SSH_KEYS."
   end
 end
 
-# NOTE need to require multistage after setting stage_dir.
-require "capistrano/ext/multistage"
+# Add a stage for vagrant.
+add_stage :vagrant do
+  server "localhost", :app, {
+    :user => "vagrant",
+    :ssh_options => {
+      :port => 2222,
+      :keys => "#{ENV["HOME"]}/.vagrant.d/insecure_private_key"
+    }
+  }
+end
 
 #
 # Common Capistrano Configurations
