@@ -1,4 +1,3 @@
 source "https://rubygems.org"
 
-gem "puppet"
-gem "capistrano"
+gem "puppet", "~> 4.2.0"

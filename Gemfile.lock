@@ -1,33 +1,22 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    capistrano (2.15.4)
-      highline
-      net-scp (>= 1.0.0)
-      net-sftp (>= 2.0.0)
-      net-ssh (>= 2.0.14)
-      net-ssh-gateway (>= 1.1.0)
-    facter (1.7.1)
-    hiera (1.2.1)
+    CFPropertyList (2.2.8)
+    facter (2.4.4)
+      CFPropertyList (~> 2.2.6)
+    hiera (2.0.0)
       json_pure
-    highline (1.6.19)
-    json_pure (1.8.0)
-    net-scp (1.1.1)
-      net-ssh (>= 2.6.5)
-    net-sftp (2.1.2)
-      net-ssh (>= 2.6.5)
-    net-ssh (2.6.7)
-    net-ssh-gateway (1.2.0)
-      net-ssh (>= 2.6.5)
-    puppet (3.2.1)
-      facter (~> 1.6)
-      hiera (~> 1.0)
-      rgen (~> 0.6)
-    rgen (0.6.2)
+    json_pure (1.8.2)
+    puppet (4.2.0)
+      facter (> 2.0, < 4)
+      hiera (>= 2.0, < 3)
+      json_pure
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  capistrano
-  puppet
+  puppet (~> 4.2.0)
+
+BUNDLED WITH
+   1.10.5
