@@ -1,7 +1,8 @@
 .DS_Store
 .bundle
-vendor/bundle
 .vagrant
+.gems
+ssl
 relationships.dot
 relationships.png
 expanded_relationships.dot
