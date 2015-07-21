@@ -1,0 +1,160 @@
+#!/bin/bash
+
+REMOTE_ROOT_DIR=/tmp/puppet
+
+# Initializations
+
+function init_colors() {
+  COLOR_RESET=$(tput sgr0)
+  COLOR_RED=$(tput setaf 1)
+  COLOR_GREEN=$(tput setaf 2)
+}
+
+function init_root_dir() {
+  local source_path="${BASH_SOURCE[0]}"
+  while [ -h "$source_path" ]; do
+    cd "$(dirname "$source_path")"
+    source_path="$(readlink "$source_path")"
+  done
+  ROOT_DIR="$(cd -P "$(dirname "$source_path")/.." && pwd)"
+  cd "$ROOT_DIR"
+}
+
+function init_rubygems() {
+  export GEM_HOME="$ROOT_DIR/.gems"
+  export GEM_PATH="$GEM_HOME"
+  mkdir -p "$GEM_HOME"
+}
+
+function install_bundler() {
+  (gem list -i bundler -v "~> 1.3" >/dev/null) || {
+    echo "${COLOR_GREEN}Install bundler...${COLOR_RESET}"
+    gem install --no-rdoc --no-ri bundler
+  }
+}
+
+function install_bundle() {
+  ("$GEM_HOME/bin/bundle" check >/dev/null) || {
+    echo "${COLOR_GREEN}Install bundle...${COLOR_RESET}"
+    "$GEM_HOME/bin/bundle" install --path .bundle
+  }
+}
+
+function init() {
+  init_colors
+  init_root_dir
+
+  init_rubygems || {
+    echo "${COLOR_RED}Fail to initialize rubygems${COLOR_RESET}"
+    exit 1
+  }
+
+  install_bundler && install_bundle || {
+    echo "${COLOR_RED}Fail to install bundle${COLOR_RESET}"
+    exit 1
+  }
+}
+
+# Executions
+
+function wait_tcp_connection() {
+  local count=1
+  while ! nc -z "$1" "$2"; do
+    count=$(($count + 1))
+    [[ $count -gt 5 ]] && return 1
+    sleep 1
+  done
+}
+
+function run_puppet_master() {
+  exec "$GEM_HOME/bin/bundle" exec puppet master --no-daemonize "$@" &
+  PUPPET_MASTER_PID="$!"
+  echo "${COLOR_GREEN}Wait puppet master...${COLOR_RESET}"
+  wait_tcp_connection localhost 8140
+}
+
+function wait_puppet_master() {
+  [[ $PUPPET_MASTER_PID ]] && {
+    echo "${COLOR_GREEN}Shutdown puppet master...${COLOR_RESET}"
+    kill -TERM "$PUPPET_MASTER_PID"
+    wait "$PUPPET_MASTER_PID"
+  }
+}
+
+function prepare_remote() {
+  echo "${COLOR_GREEN}Prepare remot host...${COLOR_RESET}"
+  rsync -avz --delete \
+    "$ROOT_DIR/Gemfile" \
+    "$ROOT_DIR/Gemfile.lock" \
+    "$ROOT_DIR/scripts" \
+    "$1":"$REMOTE_ROOT_DIR"
+}
+
+function run_puppet_agent_on_remote() {
+  echo "${COLOR_GREEN}Run puppet agent on remot host...${COLOR_RESET}"
+  ssh -t -R8140:localhost:8140 "$1" \
+    "/usr/bin/env bash \"$REMOTE_ROOT_DIR/scripts/puppet\" agent"
+}
+
+# Commands
+
+function apply() {
+  REMOTE_HOST="$1"
+
+  echo "${COLOR_GREEN}Puppt apply on ${REMOTE_HOST}...${COLOR_RESET}"
+
+  init
+
+  trap wait_puppet_master EXIT
+
+  run_puppet_master \
+    --debug \
+    --certname=localhost \
+    --autosign=true \
+    --confdir=. \
+    --codedir=. \
+  && {
+    prepare_remote "$REMOTE_HOST" && run_puppet_agent_on_remote "$REMOTE_HOST" || {
+      echo "${COLOR_RED}Fail to run puppet agent on remote host${COLOR_RESET}"
+    }
+  }
+}
+
+function agent() {
+  init
+
+  exec sudo -E "$GEM_HOME/bin/bundle" exec puppet agent \
+    --debug \
+    --no-daemonize \
+    --onetime \
+    --server=localhost \
+    --waitforcert=5 \
+    --confdir=.
+}
+
+function print_usage() {
+  echo "Usage: $0 [apply host | agent]"
+  echo "  apply host run puppet master and puppet agent on the host."
+  echo "  agent      run puppet agent."
+}
+
+# Main
+
+case "$1" in
+  apply)
+    shift
+    [[ "$1" ]] || {
+      print_usage
+      exit 1
+    }
+    apply "$@"
+    ;;
+  agent)
+    shift
+    agent "$@"
+    ;;
+  *)
+    print_usage
+    exit 1
+    ;;
+esac
