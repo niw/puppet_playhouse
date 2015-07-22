@@ -21,11 +21,9 @@ Puppet playhouse script will setup isolated environment on local also remote hos
 
  * Ruby 2.0.0 (or 1.9.3 and higher)
 
-   Current Puppet playhouse is using [Puppet 4.2.x](http://docs.puppetlabs.com/puppet/4.2/reference/system_requirements.html#ruby) which recommends using Ruby 2.0.0 (or by design, it works with 1.9.3 or higher version.)
+    Current Puppet playhouse `master` is using [Puppet 4.2.x](http://docs.puppetlabs.com/puppet/4.2/reference/system_requirements.html#ruby) which recommends using Ruby 2.0.0 (or by design, it works with 1.9.3 or higher version.) Some environment, like Amazon Linux requires to install `rubygem20-io-console` package.
 
-    > __NOTE__
-    > Some environment, like Amazon Linux requires to install `rubygem20-io-console` package.
-    > The script may be working with lower version of Puppet like 3.8 with Ruby 1.8.7, but not tested.
+    If you need to use Ruby 1.8.7, try [`puppet-3.8`](https://github.com/niw/puppet_playhouse/tree/puppet-3.8) branch, which still supports Ruby 1.8.7.
 
  * Rsync
 
@@ -61,8 +59,7 @@ Then run `scripts/puppet`. Note that `default` is the hostname added by `vagrant
 
     $ scripts/puppet apply default
 
-> __NOTE__ If it failed in some reasons,
-> then you may need to wipe `ssl` directories from both local and remote hosts to sync certificates before retrying.
+If it failed in some reasons, then you may need to wipe `ssl` directories from both local and remote hosts to sync certificates before retrying.
 
 In the long outputs, you'll see next lines.
 
