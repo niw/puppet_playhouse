@@ -108,6 +108,7 @@ function apply() {
   trap wait_puppet_master EXIT
 
   run_puppet_master \
+    --verbose \
     --certname=localhost \
     --autosign=true \
     --confdir=. \
@@ -123,6 +124,7 @@ function agent() {
   init
 
   exec sudo -E "$GEM_HOME/bin/bundle" exec puppet agent \
+    --verbose \
     --no-daemonize \
     --onetime \
     --server=localhost \
