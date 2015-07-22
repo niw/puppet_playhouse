@@ -3,6 +3,7 @@
 .vagrant
 .gems
 ssl
+var
 relationships.dot
 relationships.png
 expanded_relationships.dot

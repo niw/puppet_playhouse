@@ -49,9 +49,9 @@ END_OF_CONFIG_FILE
 }
 
 install_bundler() {
-  gem list "${GEM_OPTIONS[@]}" -i bundler -v "~> 1.15" >/dev/null || {
+  gem list "${GEM_OPTIONS[@]}" -i bundler -v "~> 1.15.0" >/dev/null || {
     echo "${COLOR_GREEN}Install bundler...${COLOR_RESET}"
-    gem install "${GEM_OPTIONS[@]}" --no-user-install --no-rdoc --no-ri bundler
+    gem install "${GEM_OPTIONS[@]}" --no-user-install --no-rdoc --no-ri bundler -v "~> 1.15.0"
   }
 }
 
@@ -167,7 +167,8 @@ apply() {
     --certname=localhost \
     --autosign=true \
     --confdir=. \
-    --codedir=. \
+    --environmentpath=environments \
+    --vardir=var \
   ; then
     run_puppet_agent_on_remote "$REMOTE_HOST" || {
       echo "${COLOR_RED}Fail to run puppet agent on remote host.${COLOR_RESET}" >&2
@@ -186,7 +187,8 @@ agent() {
     --server=localhost \
     --environment="$ENVIRONMENT" \
     --waitforcert=5 \
-    --confdir=.
+    --confdir=. \
+    --vardir=var
 }
 
 fingerprint() {
