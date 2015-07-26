@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Puppet default environment is production.
+ENVIRONMENT=production
+# Directory to store scripts on remote hosts.
 REMOTE_ROOT_DIR=/tmp/puppet
 
 # Initializations
@@ -93,7 +96,7 @@ function prepare_remote() {
 function run_puppet_agent_on_remote() {
   echo "${COLOR_GREEN}Run puppet agent on remot host...${COLOR_RESET}"
   ssh -t -R8140:localhost:8140 "$1" \
-    "/usr/bin/env bash \"$REMOTE_ROOT_DIR/scripts/puppet\" agent"
+    "/usr/bin/env bash \"$REMOTE_ROOT_DIR/scripts/puppet\" -e \"$ENVIRONMENT\" agent"
 }
 
 # Commands
@@ -128,17 +131,29 @@ function agent() {
     --no-daemonize \
     --onetime \
     --server=localhost \
+    --environment="$ENVIRONMENT" \
     --waitforcert=5 \
     --confdir=.
 }
 
 function print_usage() {
-  echo "Usage: $0 [apply host | agent]"
+  echo "Usage: $0 [-e environment] [apply host | agent]"
   echo "  apply host run puppet master and puppet agent on the host."
   echo "  agent      run puppet agent."
 }
 
 # Main
+
+while getopts e: OPT; do
+  case "$OPT" in
+    e)
+      ENVIRONMENT="$OPTARG"
+      ;;
+    *)
+      ;;
+  esac
+done
+shift $(($OPTIND - 1))
 
 case "$1" in
   apply)
