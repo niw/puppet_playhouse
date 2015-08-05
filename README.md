@@ -55,9 +55,9 @@ To allow us to ssh to Vagrant host, put `vagrant ssh-config` to your `~/.ssh/con
     $ vagrant up
     $ vagrant ssh-config >> ~/.ssh/config
 
-Then run `scripts/puppet`. Note that `default` is the hostname added by `vagrant ssh-config`.
+Then run `scripts/puppet`. Note that `centos7` is the hostname added by `vagrant ssh-config`.
 
-    $ scripts/puppet apply default
+    $ scripts/puppet apply centos7
 
 If it failed in some reasons, then you may need to wipe `ssl` directories from both local and remote hosts to sync certificates before retrying.
 
