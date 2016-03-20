@@ -3,89 +3,103 @@
 # Puppet default environment is production.
 ENVIRONMENT=production
 # Directory to store scripts on remote hosts.
-REMOTE_ROOT_DIR=/tmp/puppet
+readonly REMOTE_ROOT_DIR=/tmp/puppet
 
 # Initializations
 
-function init_colors() {
-  COLOR_RESET=$(tput sgr0)
-  COLOR_RED=$(tput setaf 1)
-  COLOR_GREEN=$(tput setaf 2)
+init_colors() {
+  readonly COLOR_RESET=$(tput sgr0)
+  readonly COLOR_RED=$(tput setaf 1)
+  readonly COLOR_GREEN=$(tput setaf 2)
 }
 
-function init_root_dir() {
+init_root_dir() {
   local source_path="${BASH_SOURCE[0]}"
   while [ -h "$source_path" ]; do
-    cd "$(dirname "$source_path")"
+    cd "$(dirname "$source_path")" || {
+      echo "${COLOR_RED}Fail to find root directory.${COLOR_RESET}" >&2
+      exit 1
+    }
     source_path="$(readlink "$source_path")"
   done
-  ROOT_DIR="$(cd -P "$(dirname "$source_path")/.." && pwd)"
-  cd "$ROOT_DIR"
+  readonly ROOT_DIR="$(cd -P "$(dirname "$source_path")/.." && pwd)"
+  cd "$ROOT_DIR" || {
+    echo "${COLOR_RED}Fail to change current directory to the root directory.${COLOR_RESET}" >&2
+    exit 1
+  }
 }
 
-function init_rubygems() {
+init_rubygems() {
   export GEM_HOME="$ROOT_DIR/.gems"
   export GEM_PATH="$GEM_HOME"
   mkdir -p "$GEM_HOME"
 }
 
-function install_bundler() {
-  (gem list -i bundler -v "~> 1.3" >/dev/null) || {
+install_bundler() {
+  gem list -i bundler -v "~> 1.3" >/dev/null || {
     echo "${COLOR_GREEN}Install bundler...${COLOR_RESET}"
     gem install --no-rdoc --no-ri bundler
   }
 }
 
-function install_bundle() {
-  ("$GEM_HOME/bin/bundle" check >/dev/null) || {
+install_bundle() {
+  "$GEM_HOME/bin/bundle" check >/dev/null || {
     echo "${COLOR_GREEN}Install bundle...${COLOR_RESET}"
     "$GEM_HOME/bin/bundle" install --path .bundle
   }
 }
 
-function init() {
+init() {
   init_colors
   init_root_dir
 
   init_rubygems || {
-    echo "${COLOR_RED}Fail to initialize rubygems${COLOR_RESET}"
+    echo "${COLOR_RED}Fail to initialize rubygems.${COLOR_RESET}" >&2
     exit 1
   }
 
-  install_bundler && install_bundle || {
-    echo "${COLOR_RED}Fail to install bundle${COLOR_RESET}"
+  install_bundler || {
+    echo "${COLOR_RED}Fail to install bundler.${COLOR_RESET}" >&2
+    exit 1
+  }
+
+  install_bundle || {
+    echo "${COLOR_RED}Fail to install bundles.${COLOR_RESET}" >&2
     exit 1
   }
 }
 
 # Executions
 
-function wait_tcp_connection() {
+wait_tcp_connection() {
   local count=1
   while ! nc -z "$1" "$2"; do
-    count=$(($count + 1))
-    [[ $count -gt 5 ]] && return 1
+    count=$((count + 1))
+    if (( count > 5 )); then
+      return 1
+    fi
     sleep 1
   done
 }
 
-function run_puppet_master() {
+run_puppet_master() {
   exec "$GEM_HOME/bin/bundle" exec puppet master --no-daemonize "$@" &
-  PUPPET_MASTER_PID="$!"
+  readonly PUPPET_MASTER_PID="$!"
+
   echo "${COLOR_GREEN}Wait puppet master...${COLOR_RESET}"
   wait_tcp_connection localhost 8140
 }
 
-function wait_puppet_master() {
-  [[ $PUPPET_MASTER_PID ]] && {
+wait_puppet_master() {
+  if [[ -n $PUPPET_MASTER_PID ]]; then
     echo "${COLOR_GREEN}Shutdown puppet master...${COLOR_RESET}"
     kill -TERM "$PUPPET_MASTER_PID"
     wait "$PUPPET_MASTER_PID"
-  }
+  fi
 }
 
-function prepare_remote() {
-  echo "${COLOR_GREEN}Prepare remot host...${COLOR_RESET}"
+prepare_remote() {
+  echo "${COLOR_GREEN}Prepare remote host...${COLOR_RESET}"
   rsync -avz --delete \
     "$ROOT_DIR/Gemfile" \
     "$ROOT_DIR/Gemfile.lock" \
@@ -93,37 +107,63 @@ function prepare_remote() {
     "$1":"$REMOTE_ROOT_DIR"
 }
 
-function run_puppet_agent_on_remote() {
-  echo "${COLOR_GREEN}Run puppet agent on remot host...${COLOR_RESET}"
+check_remote_certificate() {
+  echo "${COLOR_GREEN}Check remote certificate...${COLOR_RESET}"
+  ssh -t -R8140:localhost:8140 "$1" \
+    "/usr/bin/env bash \"$REMOTE_ROOT_DIR/scripts/puppet\" -e \"$ENVIRONMENT\" fingerprint"
+}
+
+cleanup_signed_certificate() {
+  echo "${COLOR_GREEN}Cleanup remote certificate...${COLOR_RESET}"
+  # TODO: Better solution to get a certificate file name.
+  # The certificate file name is not always given remote host name.
+  rm "$ROOT_DIR/ssl/ca/signed/$1.pem"
+}
+
+run_puppet_agent_on_remote() {
+  echo "${COLOR_GREEN}Run puppet agent on remote host...${COLOR_RESET}"
   ssh -t -R8140:localhost:8140 "$1" \
     "/usr/bin/env bash \"$REMOTE_ROOT_DIR/scripts/puppet\" -e \"$ENVIRONMENT\" agent"
 }
 
 # Commands
 
-function apply() {
-  REMOTE_HOST="$1"
+apply() {
+  readonly REMOTE_HOST="$1"
 
-  echo "${COLOR_GREEN}Puppt apply on ${REMOTE_HOST}...${COLOR_RESET}"
+  echo "${COLOR_GREEN}Puppet apply on ${REMOTE_HOST}...${COLOR_RESET}"
 
   init
 
+  prepare_remote "$REMOTE_HOST" || {
+    echo "${COLOR_RED}Fail to prepare remote host.${COLOR_RESET}" >&2
+    exit 1
+  }
+
+  check_remote_certificate "$REMOTE_HOST" || {
+    cleanup_signed_certificate "$REMOTE_HOST" || {
+      echo "${COLOR_RED}Fail to cleanup signed certificate.${COLOR_RESET}" >&2
+      echo "${COLOR_RED}Puppet master may fail due to certificate mismatch.${COLOR_RESET}" >&2
+    }
+  }
+
   trap wait_puppet_master EXIT
 
-  run_puppet_master \
+  if run_puppet_master \
     --verbose \
     --certname=localhost \
     --autosign=true \
     --confdir=. \
     --codedir=. \
-  && {
-    prepare_remote "$REMOTE_HOST" && run_puppet_agent_on_remote "$REMOTE_HOST" || {
-      echo "${COLOR_RED}Fail to run puppet agent on remote host${COLOR_RESET}"
+  ; then
+    run_puppet_agent_on_remote "$REMOTE_HOST" || {
+      echo "${COLOR_RED}Fail to run puppet agent on remote host.${COLOR_RESET}" >&2
+      exit 1
     }
-  }
+  fi
 }
 
-function agent() {
+agent() {
   init
 
   exec sudo -E "$GEM_HOME/bin/bundle" exec puppet agent \
@@ -136,40 +176,61 @@ function agent() {
     --confdir=.
 }
 
-function print_usage() {
+fingerprint() {
+  init
+
+  exec sudo -E "$GEM_HOME/bin/bundle" exec puppet agent \
+    --environment="$ENVIRONMENT" \
+    --confdir=. \
+    --vardir=var \
+    --fingerprint
+}
+
+print_usage() {
   echo "Usage: $0 [-e environment] [apply host | agent]"
-  echo "  apply host run puppet master and puppet agent on the host."
-  echo "  agent      run puppet agent."
+  echo "  apply host  run puppet master and puppet agent on the host."
+  echo "  agent       run puppet agent."
+  echo "  fingerprint print puppet agent fingerprint if exists."
 }
 
 # Main
 
-while getopts e: OPT; do
-  case "$OPT" in
-    e)
-      ENVIRONMENT="$OPTARG"
+main() {
+  while getopts e: OPT; do
+    case "$OPT" in
+      e)
+        ENVIRONMENT="$OPTARG"
+        ;;
+      *)
+        ;;
+    esac
+  done
+  readonly ENVIRONMENT
+
+  shift $((OPTIND - 1))
+
+  case "$1" in
+    apply)
+      shift
+      if [[ -z "$1" ]]; then
+        print_usage
+        exit 1
+      fi
+      apply "$@"
+      ;;
+    agent)
+      shift
+      agent "$@"
+      ;;
+    fingerprint)
+      shift
+      fingerprint "$@"
       ;;
     *)
-      ;;
-  esac
-done
-shift $(($OPTIND - 1))
-
-case "$1" in
-  apply)
-    shift
-    [[ "$1" ]] || {
       print_usage
       exit 1
-    }
-    apply "$@"
-    ;;
-  agent)
-    shift
-    agent "$@"
-    ;;
-  *)
-    print_usage
-    exit 1
-    ;;
-esac
+      ;;
+  esac
+}
+
+main "$@"
