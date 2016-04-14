@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Puppet default environment is production.
-ENVIRONMENT=production
 # Directory to store scripts on remote hosts.
 readonly REMOTE_ROOT_DIR=/tmp/puppet
 
@@ -125,8 +123,7 @@ prepare_remote() {
 
 check_remote_certificate() {
   echo "${COLOR_GREEN}Check remote certificate...${COLOR_RESET}"
-  ssh -t -R8140:localhost:8140 "$1" \
-    "/usr/bin/env bash \"$REMOTE_ROOT_DIR/scripts/puppet\" -e \"$ENVIRONMENT\" fingerprint"
+  ssh -t "$1" "/usr/bin/env bash \"$REMOTE_ROOT_DIR/scripts/puppet\" -e \"$ENVIRONMENT\" fingerprint"
 }
 
 cleanup_signed_certificate() {
@@ -212,6 +209,9 @@ print_usage() {
 # Main
 
 main() {
+  # Puppet default environment is production.
+  ENVIRONMENT=production
+
   while getopts e: OPT; do
     case "$OPT" in
       e)
