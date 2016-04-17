@@ -60,7 +60,7 @@ install_bundler() {
 install_bundle() {
   "$GEM_HOME/bin/bundle" check >/dev/null || {
     echo "${COLOR_GREEN}Install bundle...${COLOR_RESET}"
-    "$GEM_HOME/bin/bundle" install
+    "$GEM_HOME/bin/bundle" install ${1:+"--with=$1"}
   }
 }
 
@@ -78,7 +78,7 @@ init() {
     exit 1
   }
 
-  install_bundle || {
+  install_bundle "$@" || {
     echo "${COLOR_RED}Fail to install bundles.${COLOR_RESET}" >&2
     exit 1
   }
@@ -149,7 +149,7 @@ apply() {
 
   echo "${COLOR_GREEN}Puppet apply on ${REMOTE_HOST}...${COLOR_RESET}"
 
-  init
+  init master
 
   prepare_remote "$REMOTE_HOST" || {
     echo "${COLOR_RED}Fail to prepare remote host.${COLOR_RESET}" >&2
@@ -180,7 +180,7 @@ apply() {
 }
 
 agent() {
-  init
+  init agent
 
   exec sudo -E "$GEM_HOME/bin/bundle" exec puppet agent \
     --verbose \
@@ -193,7 +193,7 @@ agent() {
 }
 
 fingerprint() {
-  init
+  init agent
 
   exec sudo -E "$GEM_HOME/bin/bundle" exec puppet agent \
     --environment="$ENVIRONMENT" \
