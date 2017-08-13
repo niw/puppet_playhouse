@@ -33,19 +33,34 @@ init_rubygems() {
   export GEM_HOME="$ROOT_DIR/.gems"
   export GEM_PATH="$GEM_HOME"
   mkdir -p "$GEM_HOME"
+
+  if gem environment --norc >/dev/null 2>&1; then
+    readonly GEM_OPTIONS=(--norc)
+  else
+    # This `gem` doesn't support `--norc`, use `--config-file` instead.
+    # See <https://github.com/rubygems/rubygems/pull/1329>.
+    local -r config_file=$(mktemp)
+    cat <<END_OF_CONFIG_FILE > "$config_file"
+---
+gemhome: "$GEM_HOME"
+gempath:
+  - "$GEM_PATH"
+END_OF_CONFIG_FILE
+    readonly GEM_OPTIONS=(--config-file "$config_file")
+  fi
 }
 
 install_bundler() {
-  gem list -i bundler -v "~> 1.3" >/dev/null || {
+  gem list "${GEM_OPTIONS[@]}" -i bundler -v "~> 1.15" >/dev/null || {
     echo "${COLOR_GREEN}Install bundler...${COLOR_RESET}"
-    gem install --no-rdoc --no-ri bundler
+    gem install "${GEM_OPTIONS[@]}" --no-user-install --no-rdoc --no-ri bundler
   }
 }
 
 install_bundle() {
   "$GEM_HOME/bin/bundle" check >/dev/null || {
     echo "${COLOR_GREEN}Install bundle...${COLOR_RESET}"
-    "$GEM_HOME/bin/bundle" install --path .bundle
+    "$GEM_HOME/bin/bundle" install
   }
 }
 
