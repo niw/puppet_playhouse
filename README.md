@@ -21,7 +21,7 @@ Puppet playhouse script will setup isolated environment on local also remote hos
 
  * Ruby 2.1.0 (or 1.9.3 and higher)
 
-    Current Puppet playhouse `master` is using [Puppet 4.2.x](http://docs.puppetlabs.com/puppet/4.2/reference/system_requirements.html#ruby) which recommends using Ruby 2.1.0 (or by design, it works with 1.9.3 or higher version.) Some environment, like Amazon Linux requires to install `rubygem20-io-console` package.
+    Current Puppet playhouse `master` is using [Puppet 4.10.x](http://docs.puppetlabs.com/puppet/4.10/reference/system_requirements.html#ruby) which recommends using Ruby 2.1.0 (or by design, it works with 1.9.3 or higher version.) Some environment, like Amazon Linux requires to install `rubygem20-io-console` package.
 
     If you need to use Ruby 1.8.7, try [`puppet-3.8`](https://github.com/niw/puppet_playhouse/tree/puppet-3.8) branch, which still supports Ruby 1.8.7.
 
