@@ -90,7 +90,8 @@ wait_tcp_connection() {
   local count=1
   while ! nc -z "$1" "$2"; do
     count=$((count + 1))
-    if (( count > 5 )); then
+    if (( count > 10 )); then
+      echo "${COLOR_RED}Timeout waiting listening $1:$2${COLOR_RESET}" >&2
       return 1
     fi
     sleep 1
