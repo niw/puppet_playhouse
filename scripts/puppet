@@ -123,7 +123,7 @@ prepare_remote() {
 
 check_remote_certificate() {
   echo "${COLOR_GREEN}Check remote certificate...${COLOR_RESET}"
-  ssh -t "$1" "/usr/bin/env bash \"$REMOTE_ROOT_DIR/scripts/puppet\" -e \"$ENVIRONMENT\" fingerprint"
+  ssh "$1" "/usr/bin/env TERM=\"$TERM\" bash \"$REMOTE_ROOT_DIR/scripts/puppet\" -e \"$ENVIRONMENT\" fingerprint"
 }
 
 cleanup_signed_certificate() {
@@ -135,8 +135,8 @@ cleanup_signed_certificate() {
 
 run_puppet_agent_on_remote() {
   echo "${COLOR_GREEN}Run puppet agent on remote host...${COLOR_RESET}"
-  ssh -t -R8140:localhost:8140 "$1" \
-    "/usr/bin/env bash \"$REMOTE_ROOT_DIR/scripts/puppet\" -e \"$ENVIRONMENT\" agent"
+  ssh -R8140:localhost:8140 "$1" \
+    "/usr/bin/env TERM=\"$TERM\" bash \"$REMOTE_ROOT_DIR/scripts/puppet\" -e \"$ENVIRONMENT\" agent"
 }
 
 # Commands
