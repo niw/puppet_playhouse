@@ -1,19 +1,19 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    facter (2.5.0)
-    fast_gettext (1.1.0)
-    gettext (3.2.4)
+    facter (2.5.1)
+    fast_gettext (1.1.2)
+    gettext (3.2.6)
       locale (>= 2.0.5)
       text (>= 1.3.0)
-    gettext-setup (0.26)
+    gettext-setup (0.30)
       fast_gettext (~> 1.1.0)
       gettext (>= 3.0.2)
       locale
-    hiera (3.4.0)
+    hiera (3.4.2)
     json_pure (1.8.6)
     locale (2.1.2)
-    puppet (4.10.6)
+    puppet (4.10.10)
       facter (> 2.0, < 4)
       gettext-setup (>= 0.10, < 1)
       hiera (>= 2.0, < 4)
@@ -28,4 +28,4 @@ DEPENDENCIES
   puppet (~> 4.10.0)
 
 BUNDLED WITH
-   1.15.3
+   1.16.1
